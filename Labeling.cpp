@@ -20,15 +20,15 @@ Labeling& Labeling::operator=(const Labeling& other){
 	return *this;
 }
 
-unsigned int Labeling::operator()(const cv::Mat& img, int connect){
+unsigned short Labeling::operator()(const cv::Mat& img, int connect){
 	labeltable.resize(0);
 	labeltable.push_back(0);
 
-	label=cv::Mat_<unsigned int>::zeros(img.rows,img.cols);
-	unsigned int currentlabel=0;
+	label=cv::Mat::zeros(img.rows,img.cols,CV_16U);
+	unsigned short currentlabel=0;
 
 	const unsigned char *line=img.ptr<unsigned char>(0);
-	unsigned int *line_label=label.ptr<unsigned int>(0), *line_label_prev=NULL;
+	unsigned short *line_label=label.ptr<unsigned short>(0), *line_label_prev=NULL;
 
 	// 少なくとも2x2以上の画像でないとだめ
 	if(img.rows < 2 || img.cols < 2) throw "Image size is invalid.";
@@ -36,7 +36,7 @@ unsigned int Labeling::operator()(const cv::Mat& img, int connect){
 	for(int y=0; y<img.rows; y++, line_label_prev=line_label){
 		/// 行ごとの処理
 		line=img.ptr<unsigned char>(y);
-		line_label=label.ptr<unsigned int>(y);
+		line_label=label.ptr<unsigned short>(y);
 
 		for(int x=0; x<img.cols; x++){
 			if(line[x]!=0){
@@ -48,7 +48,7 @@ unsigned int Labeling::operator()(const cv::Mat& img, int connect){
 				line_label[x]=_checkNeighbor();
 				if(line_label[x]==0){
 					/// 周りに領域がない場合
-					if(currentlabel==std::numeric_limits<unsigned int>::max()){
+					if(currentlabel==std::numeric_limits<unsigned short>::max()){
 						throw "Label number overflow.";
 					}
 					currentlabel++;
@@ -67,7 +67,7 @@ unsigned int Labeling::operator()(const cv::Mat& img, int connect){
 
 	// 領域分割画像にラベル再割当てを反映
 	for(int y=0;y<label.rows;y++){
-		unsigned int *label_line=label.ptr<unsigned int>(y);
+		unsigned short *label_line=label.ptr<unsigned short>(y);
 		for(int x=0;x<label.cols;x++){
 			label_line[x]=labeltable[label_line[x]];
 		}
@@ -77,42 +77,42 @@ unsigned int Labeling::operator()(const cv::Mat& img, int connect){
 	return num;
 }
 
-cv::Mat_<unsigned int> Labeling::getLabel()const{
+cv::Mat Labeling::getLabel()const{
 	if(!isLabeled) throw "call operator() first";
-	return label;
+	return label.clone();
 }
 
-unsigned int Labeling::getRegionSize(unsigned int i)const{
+unsigned short Labeling::getRegionSize(unsigned short i)const{
 	if(!isLabeled) throw "call operator() first";
 	return regionsize[i];
 }
 
-unsigned int Labeling::_compaction(){
-	for(unsigned int i=0;i<labeltable.size();i++){
+unsigned short Labeling::_compaction(){
+	for(unsigned short i=0;i<labeltable.size();i++){
 		labeltable[i]=_compaction(i);
 	}
 	_compaction2();
 	return *(std::max_element(labeltable.begin(),labeltable.end()))+1;
 }
 
-unsigned int Labeling::_compaction(unsigned int i){
+unsigned short Labeling::_compaction(unsigned short i){
 	if(i==labeltable[i]) return i;
 	
 	labeltable[i]=_compaction(labeltable[i]);
 	return labeltable[i];
 }
 
-unsigned int Labeling::_checkNeighbor(){
-	unsigned int val=std::numeric_limits<unsigned int>::max();
+unsigned short Labeling::_checkNeighbor(){
+	unsigned short val=std::numeric_limits<unsigned short>::max();
 
-	for(unsigned int i=0;i<4;i++){
+	for(unsigned short i=0;i<4;i++){
 		if(neighbor[i]==0)continue;
 		if(val >= labeltable[neighbor[i]]) val=labeltable[neighbor[i]];
 	}
 
 	// 領域が複数ある場合テーブルを書き換える
-	if(val!=std::numeric_limits<unsigned int>::max()){
-		for(unsigned int i=0;i<4;i++){
+	if(val!=std::numeric_limits<unsigned short>::max()){
+		for(unsigned short i=0;i<4;i++){
 			if(neighbor[i]==0)continue;
 			labeltable[neighbor[i]]=val;
 		}
@@ -122,12 +122,12 @@ unsigned int Labeling::_checkNeighbor(){
 }
 
 void Labeling::_compaction2(){
-	std::map<unsigned int,unsigned int> usedlabel;
+	std::map<unsigned short,unsigned short> usedlabel;
 	usedlabel[0]=0;
-	std::map<unsigned int,unsigned int>::iterator prev;
-	unsigned int i=0;
+	std::map<unsigned short,unsigned short>::iterator prev;
+	unsigned short i=0;
 
-	for(std::vector<unsigned int>::iterator it=labeltable.begin();it!=labeltable.end();it++){
+	for(std::vector<unsigned short>::iterator it=labeltable.begin();it!=labeltable.end();it++){
 		prev=usedlabel.find(*it);
 		if(prev==usedlabel.end()){
 			i++;
@@ -139,14 +139,14 @@ void Labeling::_compaction2(){
 	}
 }
 
-void Labeling::_sort(unsigned int num){
-	std::vector<std::pair<unsigned int,unsigned int> > regiontemp;
+void Labeling::_sort(unsigned short num){
+	std::vector<std::pair<unsigned short,unsigned short> > regiontemp;
 
 	regionsize.resize(num);
 
 	// 画素値のカウント
 	for(int y=0;y<label.rows;y++){
-		const unsigned int *label_line=label.ptr<unsigned int>(y);
+		const unsigned short *label_line=label.ptr<unsigned short>(y);
 		for(int x=0;x<label.cols;x++){
 			// 背景でなければカウント
 			if(label_line[x]!=0) regionsize[labeltable[label_line[x]]]++;
@@ -154,28 +154,28 @@ void Labeling::_sort(unsigned int num){
 	}
 
 	// ソートのためmapからvectorへ
-	unsigned int i=0;
-	for(std::vector<unsigned int>::iterator it=regionsize.begin(); it!=regionsize.end(); it++){
+	unsigned short i=0;
+	for(std::vector<unsigned short>::iterator it=regionsize.begin(); it!=regionsize.end(); it++){
 		regiontemp.push_back(std::make_pair(i,*it));
 		i++;
 	}
 
 	// 2個目以降を大きさ順にソート
-	std::vector<std::pair<unsigned int,unsigned int> >::iterator it=regiontemp.begin();it++;
+	std::vector<std::pair<unsigned short,unsigned short> >::iterator it=regiontemp.begin();it++;
 	std::sort(it, regiontemp.end(), _PairSort());
 
 	// ラベルの再割り当てマップを作る
 	i=0;
 	regionsize.clear();
-	std::map<unsigned int,unsigned int> remap; // <割り当て前,割り当て後>
-	for(std::vector<std::pair<unsigned int,unsigned int> >::iterator it2=regiontemp.begin(); it2!=regiontemp.end(); it2++){
+	std::map<unsigned short,unsigned short> remap; // <割り当て前,割り当て後>
+	for(std::vector<std::pair<unsigned short,unsigned short> >::iterator it2=regiontemp.begin(); it2!=regiontemp.end(); it2++){
 		remap[it2->first]=i;
 		regionsize.push_back(it2->second);
 		i++;
 	}
 
 	// ラベルの再割り当て
-	for(std::vector<unsigned int>::iterator lt=labeltable.begin(); lt!=labeltable.end(); lt++){
+	for(std::vector<unsigned short>::iterator lt=labeltable.begin(); lt!=labeltable.end(); lt++){
 		*lt=remap[*lt];
 	}
 }

@@ -38,7 +38,7 @@ int main(int argc, char **argv){
 	}
 
 	// “K“–‚É‰ÂŽ‹‰»‚µ‚Ä
-	label*=(double)256/num;
+	label=label*(255.0/num);
 	label.convertTo(resultimg,CV_8UC1);
 
 	// •\Ž¦
