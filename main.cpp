@@ -3,45 +3,45 @@
 #include <iostream>
 #include "Labeling.h"
 
-#ifdef __BENCH__ // ベンチマークをする場合は __BENCH__を一番上でdefineしてください
+#ifdef __BENCH__ // Define __BENCH__ if you want to do benchmarking.
 #include <time.h>
 void benchmark(const cv::Mat& img, Labeling& labeler);
 #endif
 
 int main(int argc, char **argv){
-	// 対象となる画像（CV_8UC1の二値画像である必要があります）
+	// Target image ( CV_8UC1, binary(W/B) image )
 	cv::Mat img=cv::imread("test.bmp",CV_LOAD_IMAGE_GRAYSCALE);
-	// 処理結果（cv::Mat_<int>で返します）
+	// Result image ( CV_16UC1 )
 	cv::Mat label;
-	// 結果表示用
+	// for Visualization
 	cv::Mat resultimg;
 
-	int num; // 領域数（背景も１つの領域（0番目）として含む）
+	int num; // number of blobs ( number of the background is 0 )
 
 	Labeling labeler;
 
-	// ラベリング処理
+	// labeling procedure
 	num=labeler(img,LABELING_CONNECT_8);
 
-#ifdef __BENCH__ // ベンチマークをする場合は __BENCH__をdefineしてください
+#ifdef __BENCH__
 	benchmark(img, labeler);
 #endif
 
-	// ラベリング結果を取得
+	// get the labeling result
 	label=labeler.getLabel();
 	std::cout << "number of regions: " << num << std::endl;
 
-	// 1からが白の領域
+	// number of the regions are start from 1
 	for(int i=1;i<num;i++){
 		std::cout << "size of region " << i;
 		std::cout << ": " << labeler.getRegionSize(i) << std::endl;
 	}
 
-	// 適当に可視化して
+	// visualizing
 	label=label*(255.0/num);
 	label.convertTo(resultimg,CV_8UC1);
 
-	// 表示
+	// show
 	cv::imshow("test", img);
 	cv::imshow("label", resultimg);
 	cv::waitKey(0);

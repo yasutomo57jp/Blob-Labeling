@@ -30,11 +30,10 @@ unsigned short Labeling::operator()(const cv::Mat& img, int connect){
 	const unsigned char *line=img.ptr<unsigned char>(0);
 	unsigned short *line_label=label.ptr<unsigned short>(0), *line_label_prev=NULL;
 
-	// 少なくとも2x2以上の画像でないとだめ
+	// at least 2x2 pixels
 	if(img.rows < 2 || img.cols < 2) throw "Image size is invalid.";
 
 	for(int y=0; y<img.rows; y++, line_label_prev=line_label){
-		/// 行ごとの処理
 		line=img.ptr<unsigned char>(y);
 		line_label=label.ptr<unsigned short>(y);
 
@@ -47,7 +46,6 @@ unsigned short Labeling::operator()(const cv::Mat& img, int connect){
 
 				line_label[x]=_checkNeighbor();
 				if(line_label[x]==0){
-					/// 周りに領域がない場合
 					if(currentlabel==std::numeric_limits<unsigned short>::max()){
 						throw "Label number overflow.";
 					}
@@ -59,13 +57,10 @@ unsigned short Labeling::operator()(const cv::Mat& img, int connect){
 		}
 	}
 
-	// ラベル数を数えて，ラベルの再配置を行う
 	int num=_compaction();
 
-	// 領域の大きさ順にソートして，ラベルの再割り当てを行う
 	_sort(num);
 
-	// 領域分割画像にラベル再割当てを反映
 	for(int y=0;y<label.rows;y++){
 		unsigned short *label_line=label.ptr<unsigned short>(y);
 		for(int x=0;x<label.cols;x++){
@@ -110,9 +105,8 @@ unsigned short Labeling::_checkNeighbor(){
 		if(val >= labeltable[neighbor[i]]) val=labeltable[neighbor[i]];
 	}
 
-	// 領域が複数ある場合テーブルを書き換える
 	if(val!=std::numeric_limits<unsigned short>::max()){
-		for(unsigned short i=0;i<4;i++){
+		for(int i=0;i<4;i++){
 			if(neighbor[i]==0)continue;
 			labeltable[neighbor[i]]=val;
 		}
@@ -144,37 +138,33 @@ void Labeling::_sort(unsigned short num){
 
 	regionsize.resize(num);
 
-	// 画素値のカウント
+	// count the number of pixels in 'num'-th region
 	for(int y=0;y<label.rows;y++){
 		const unsigned short *label_line=label.ptr<unsigned short>(y);
 		for(int x=0;x<label.cols;x++){
-			// 背景でなければカウント
 			if(label_line[x]!=0) regionsize[labeltable[label_line[x]]]++;
 		}
 	}
 
-	// ソートのためmapからvectorへ
 	unsigned short i=0;
 	for(std::vector<unsigned short>::iterator it=regionsize.begin(); it!=regionsize.end(); it++){
 		regiontemp.push_back(std::make_pair(i,*it));
 		i++;
 	}
 
-	// 2個目以降を大きさ順にソート
 	std::vector<std::pair<unsigned short,unsigned short> >::iterator it=regiontemp.begin();it++;
 	std::sort(it, regiontemp.end(), _PairSort());
 
-	// ラベルの再割り当てマップを作る
 	i=0;
 	regionsize.clear();
-	std::map<unsigned short,unsigned short> remap; // <割り当て前,割り当て後>
+	std::map<unsigned short,unsigned short> remap; // <before, after>
 	for(std::vector<std::pair<unsigned short,unsigned short> >::iterator it2=regiontemp.begin(); it2!=regiontemp.end(); it2++){
 		remap[it2->first]=i;
 		regionsize.push_back(it2->second);
 		i++;
 	}
 
-	// ラベルの再割り当て
+	// re-labeling
 	for(std::vector<unsigned short>::iterator lt=labeltable.begin(); lt!=labeltable.end(); lt++){
 		*lt=remap[*lt];
 	}

@@ -1,7 +1,7 @@
 /*!
  * @file Labeling.h
  * @author Yasutomo Kawanishi
- * @date Last Change:01-Jun-2012.
+ * @date Last Change:02-Jun-2012.
  * */
 
 #ifndef __LABELING_H_
@@ -14,10 +14,9 @@
 
 /**
  * @class Labeling
- * @note 0が背景
- * ソートする場合は面積の大きい順に1,2,3…
- * ソートしない場合は見つけた順に1,2,3…
- * のラベルが振られる。
+ * @note '0' shows the background pixel
+ * ordered by region size if sorting is enabled
+ * ordered by finding if sorting is disalbed
  * */
 class Labeling{
 public:
@@ -26,9 +25,9 @@ public:
 	Labeling(const Labeling& other);
 	Labeling& operator=(const Labeling& other);
 
-	unsigned short operator()(const cv::Mat& src, int connect=LABELING_CONNECT_8); // 領域ラベリングを行う
-	cv::Mat getLabel()const; // ラベル画像を取得（背景が0,それ以外はラベルを画素値として持つCV_32UC1画像）
-	unsigned short getRegionSize(unsigned short i)const; // 指定した領域の大きさを返す
+	unsigned short operator()(const cv::Mat& src, int connect=LABELING_CONNECT_8);
+	cv::Mat getLabel()const; // ( CV_16UC1 ）
+	unsigned short getRegionSize(unsigned short i)const;
 
 private:
 	inline unsigned short _checkNeighbor();
