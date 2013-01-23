@@ -1,7 +1,7 @@
 SRCS = main Labeling
 TARGET = bloblabeling
 
-CXXFLAGS += $(shell pkg-config --cflags opencv) -g#-O3
+CXXFLAGS +=$(shell pkg-config --cflags opencv) -O3# -g -D__BENCH__ 
 LDFLAGS += $(shell pkg-config --libs opencv)
 
 .DEFAULT: $(CXXProgram $(TARGET), $(SRCS))

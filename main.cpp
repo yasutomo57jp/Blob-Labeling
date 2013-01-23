@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 	// for Visualization
 	cv::Mat resultimg;
 
-	int num; // number of blobs ( number of the background is 0 )
+	int num; // number of blob ids ( id of the background is 0 )
 
 	Labeling labeler;
 
